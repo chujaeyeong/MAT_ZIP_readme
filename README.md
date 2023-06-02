@@ -57,14 +57,38 @@
   * 적립된 포인트를 사용해서 상품교환(기프티콘) SENS API 사용해서 문자로 전송
 
 * #### `캘린더`
-  * (각자 본인의 기능 간략하게 작성바람)
+  * 방문 예정인 맛집 일정을 등록하고, 확인할 수 있는 캘린더 기능을 구현함.
 
 <br>
 
 ## 4. 핵심 기능 설명 & 트러블 슈팅
-#### 1. 포인트 시스템
+
+#### 4) 회원 커뮤니티
 <details>
-  <summary>📌핵심 기능 설명</summary>
+  <summary>📌 핵심 기능 설명</summary>
+	
+  ##### `1. 유저의 영수증 등록 여부를 체크한 리뷰 작성 기능`
+  * 회원 커뮤니티 내 리뷰 게시판은 유저가 리뷰를 작성하고, 다른 사람들의 리뷰에 댓글을 남길 수 있는 구조의 게시판 페이지로 구현.
+	* 리뷰에 신뢰도를 높이기 위해, 유저의 영수증 등록 여부 판단이 필요함.
+	* 영수증을 다수의 식당에 등록하고 리뷰를 작성할 때, 리뷰를 남기고 싶은 영수증을 선택하는 form으로 먼저 이동이 필요함.
+  * 리뷰게시판 (Review...) 게시물 등록 로직을 처리하기 위해 registerAndSearch 패키지 안에 있는 MZRegisterInfoVO 와 RestaurantVO의 사용이 필요함. 두 model 모두 다른 패키지에 있지만, public 메소드로 작성되어있기 때문에 board 패키지에 동일 model을 만들지 않고 MZRegisterReceiptDTO 만 생성하여 mzRegisterInfoVO와 restaurantVO를 사용할 수 있도록 함.
+  * ReviewMapper.xml에서 mzregisterinfo 와 restaurant 테이블을 join 해서 영수증 정보와 식당 정보를 추출하는 getReceiptWithRestaurant 쿼리 작성. (mzregisterinfo 테이블의 storePhoneNumber 컬럼 데이터와 restaurant 테이블의 tel 컬럼 데이터가 일치하는 restaurant 테이블의 name 컬럼 데이터를 상호명으로 추출)
+  * 영수증 1장으로 리뷰를 다회 작성을 막기 위해 cs_review 테이블에 receipt_id 컬럼 (mzregisterinfo의 no 컬럼 데이터를 가져와서 저장) 데이터를 제외하고 영수증 정보와 식당 정보를 추출.
+  * **‼결과‼** writeReview로 이동하면 getReceiptWithRestaurant 쿼리를 수행하여 영수증의 상호명 + 주소 가 radio form으로 브라우저에 출력, 유저가 리뷰를 작성할 영수증을 선택하고 리뷰 작성 form으로 이동하도록 구현. (영수증을 등록하지 않은 유저가 writeReview 으로 이동하면 alert 창을 보여주고 리뷰게시판으로 리다이렉트됨.)
+	
+  ##### `2. 리뷰 본문에서 특정 키워드 추출하여 이모티콘 조회 기능`
+  * 유저가 리뷰를 작성 후 제출하기 전에, 이모티콘 조회 버튼을 클릭하면 식당 방문 시 참고할 수 있는 주요 키워드 (ex. 주차, 맛, 청결, 가성비 등) 를 검색해서 이모티콘을 출력해주는 기능을 리뷰 작성 form 에 추가.
+  * 기존에는 네이버 Sentiment API를 활용하려고 했으나, 긍정/부정 파트를 퍼센트로 판단해주는 기능이라 다양한 키워드를 검색 후 출력이 필요한 지금 상황에는 API가 약간 맞지 않다고 판단하여 MySQL에 키워드와 이모티콘을 저장한 emojiMap 테이블을 DB에 생성하여 키워드를 저장하는 작업을 진행. (형태소 분리가 필요하지만 일단 테스트)
+  * ReviewMapper.xml 에 추가하는 쿼리문에서는 emojiMap 데이터 전체 SELECT 쿼리 , Service 계층에서 리뷰 본문과 emojiMap 테이블의 keyward 컬럼 데이터를 비교해서 일치하는 emoji 컬럼 데이터를 추출 후 모델에 저장하는 작업을 수행.
+  * **‼결과‼** 리뷰 작성 form (insertReview) 에서 리뷰 본문을 모두 입력 하고, 이모티콘 조회 버튼을 클릭하면 ajax로 리뷰 하단 div에 추출된 이모티콘이 출력되는 방식으로 비동기처리 이모티콘 조회 기능을 구현. 
+
+</details>
+
+<br>
+
+#### 6) 포인트 시스템
+<details>
+  <summary>📌 핵심 기능 설명</summary>
 	
   ##### `1. OCR을 활용한 영수증 등록 시 포인트 적립`
   * 먼저 OCR을 통한 영수증 등록 로직을 처리하는 DataValidationService에 포인트 적립 로직을 처리하는 PointSaveHistoryService를 @Autowired를 이용해 의존성 주입.
@@ -93,7 +117,7 @@
 </details>
 
 <details>
-  <summary>⚽트러블 슈팅</summary>
+  <summary>⚽ 트러블 슈팅</summary>
 
 <br>
 	
@@ -150,31 +174,30 @@
 
 <br>
 
-
-
-
-#### 04. 회원 커뮤니티
+#### 7) 캘린더
 <details>
   <summary>📌 핵심 기능 설명</summary>
-	
-  ##### `1. 유저의 영수증 등록 여부를 체크한 리뷰 작성 기능`
-  * 회원 커뮤니티 내 리뷰 게시판은 유저가 리뷰를 작성하고, 다른 사람들의 리뷰에 댓글을 남길 수 있는 구조의 게시판 페이지로 구현.
-	* 리뷰에 신뢰도를 높이기 위해, 유저의 영수증 등록 여부 판단이 필요함.
-	* 영수증을 다수의 식당에 등록하고 리뷰를 작성할 때, 리뷰를 남기고 싶은 영수증을 선택하는 form으로 먼저 이동이 필요함.
-  * 리뷰게시판 (Review...) 게시물 등록 로직을 처리하기 위해 registerAndSearch 패키지 안에 있는 MZRegisterInfoVO 와 RestaurantVO의 사용이 필요함. 두 model 모두 다른 패키지에 있지만, public 메소드로 작성되어있기 때문에 board 패키지에 동일 model을 만들지 않고 MZRegisterReceiptDTO 만 생성하여 mzRegisterInfoVO와 restaurantVO를 사용할 수 있도록 함.
-  * ReviewMapper.xml에서 mzregisterinfo 와 restaurant 테이블을 join 해서 영수증 정보와 식당 정보를 추출하는 getReceiptWithRestaurant 쿼리 작성. (mzregisterinfo 테이블의 storePhoneNumber 컬럼 데이터와 restaurant 테이블의 tel 컬럼 데이터가 일치하는 restaurant 테이블의 name 컬럼 데이터를 상호명으로 추출)
-  * 영수증 1장으로 리뷰를 다회 작성을 막기 위해 cs_review 테이블에 receipt_id 컬럼 (mzregisterinfo의 no 컬럼 데이터를 가져와서 저장) 데이터를 제외하고 영수증 정보와 식당 정보를 추출.
-  * **‼결과‼** writeReview로 이동하면 getReceiptWithRestaurant 쿼리를 수행하여 영수증의 상호명 + 주소 가 radio form으로 브라우저에 출력, 유저가 리뷰를 작성할 영수증을 선택하고 리뷰 작성 form으로 이동하도록 구현. (영수증을 등록하지 않은 유저가 writeReview 으로 이동하면 alert 창을 보여주고 리뷰게시판으로 리다이렉트됨.)
-	
-  ##### `2. 리뷰 본문에서 특정 키워드 추출하여 이모티콘 조회 기능`
-  * 유저가 리뷰를 작성 후 제출하기 전에, 이모티콘 조회 버튼을 클릭하면 식당 방문 시 참고할 수 있는 주요 키워드 (ex. 주차, 맛, 청결, 가성비 등) 를 검색해서 이모티콘을 출력해주는 기능을 리뷰 작성 form 에 추가.
-  * 기존에는 네이버 Sentiment API를 활용하려고 했으나, 긍정/부정 파트를 퍼센트로 판단해주는 기능이라 다양한 키워드를 검색 후 출력이 필요한 지금 상황에는 API가 약간 맞지 않다고 판단하여 MySQL에 키워드와 이모티콘을 저장한 emojiMap 테이블을 DB에 생성하여 키워드를 저장하는 작업을 진행. (형태소 분리가 필요하지만 일단 테스트)
-  * ReviewMapper.xml 에 추가하는 쿼리문에서는 emojiMap 데이터 전체 SELECT 쿼리 , Service 계층에서 리뷰 본문과 emojiMap 테이블의 keyward 컬럼 데이터를 비교해서 일치하는 emoji 컬럼 데이터를 추출 후 모델에 저장하는 작업을 수행.
-  * **‼결과‼** 리뷰 작성 form (insertReview) 에서 리뷰 본문을 모두 입력 하고, 이모티콘 조회 버튼을 클릭하면 ajax로 리뷰 하단 div에 추출된 이모티콘이 출력되는 방식으로 비동기처리 이모티콘 조회 기능을 구현. 
-
+    
+  ##### `캘린더 API를 참고한 캘린더`
+  * 캘린더 화면 출력 관련 코드 CalController에 Autowired로 CalDAO의 인스턴스를 주입해 메서드 호출. => 스프링의 의존성 주입
+  * CalDAO에 주입된 mybatis의 SqlSessionTemplate를 이용해서 CalMapper.xml에 있는 쿼리문을 수행
+  * **‼결과‼** 일정을 등록하고, 등록된 일정을 수정 및 삭제할 수 있음. DB 테이블에 등록/수정/삭제된 데이터 반영.
 </details>
 
+<details>
+  <summary>⚽ 트러블 슈팅</summary>
+  ##### `1. 500에러들(문법적 오류)`
+  * 첫 번째 문제 : cal.do와 cal을 혼용하여 써서 인식을 제대로 하지 못한 문제 => .do와 같은 수식어를 붙이는 건 불필요한 관습이니 쓰지 않도록.
+  * 두 번째 문제 : mybatis=confog.xml에 타입알리아스 맵퍼 등록을 안 해둔 문제.
+  * 세 번째 문제 : CalDAO에서 interface 바로 쓸 수 없음.
+    
+  ##### `2. 새로 알게 된 것`
+  * 첫 번째 : css와 jsp에 스타일 적용이 둘 다 되어있다면 css가 먼저 적용된다. => css는 외부에서 구한 자료이기에 수정을 하기 까다로워서 중앙배열 같은 문제는 java코드로 손보는 것에 어려움이 있음.
+  * 두 번째 : jsp만 수정한 것은 서버를 중지하지 않고 구현 화면에서 바로 새로고침해도 적용이 되지만 자바코드가 수정된 것은 서버를 중지시킨 후 재실행해야 반영이 된다.(ex.Mapper에서 수정되면 서버 재실행)
 
+<br>
+
+</details>
 
 
 
