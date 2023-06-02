@@ -1,9 +1,9 @@
 # [팀프로젝트] 맛.JAVA - 맛.ZIP
 #### 💡 맛.ZIP은 “진짜 믿고 먹을 수 있는 맛집” 을 공유하는 플랫폼입니다.
-* 맛.JAVA 팀은 맛집 탐방에 누구보다 진심인 사람들이 뭉친 팀입니다.
+* 맛.JAVA 팀은 맛집 탐방에 누구보다 진심인 사람들이 뭉친 팀입니다. 🍔
 * 평소에 모두가 겪고 있던 부정한 광고, 믿을 수 없는 후기 속에서 소비자들이 믿고 방문할 수 있는 맛집을 모아 볼 수 있는 사이트의 필요성을 느꼈습니다.
 * 그래서, 영수증 2회 이상 인증된 맛집만 등록되도록 해서 신뢰도 및 만족도가 높은 맛집만 선별하여 소비자에게 제공하는 목적으로 개발을 진행했습니다.
-* 국내 운영 중인 맛집 추천 사이트, 대형 포털 지도 사이트를 분석하여, 진정성 있는 맛집 공유 사이트가 되기 위한 기능 구현에 초점을 맞췄습니다.
+* 국내 운영 중인 맛집 추천 사이트, 대형 포털 지도 사이트의 사례 분석을 통해, 웹사이트 기능의 방향성을 "진정성 있는 맛집 공유"로 초점을 맞췄습니다.
 * 맛집을 좋아하는 사람들 뿐만 아니라, 맛집을 좋아하는 사람들의 방문을 원하는 요식업계 사장님들도 타켓팅한 사장님 전용 구독 서비스 및 노출 배너 광고를 BM으로 설정했습니다.
 
 
@@ -185,130 +185,22 @@
 
 <br>
 
-#### 2. 비밀번호 암호화 PasswordEncoder
-<details>
-  <summary>📌핵심 기능 설명</summary>
-  
-  ##### `1. 회원가입 시 비밀번호 암호화`
-  * 먼저 PasswordEncoder을 주입 받기 위한 Spring Security 설정을 해주었고, Service에서 BCryptPasswordEncoder를 사용했다.
-  * 회원가입 시 입력받은 비밀번호를 BCryptPasswordEncoder객체의 encode() 메서드로 암호화 해주었고, 
-  * 암호화된 비밀번호를 다시 MemberDto에 넣어주며 회원가입을 완료했다.
-  * [👉이미지로 전체 흐름 확인하기](https://user-images.githubusercontent.com/84839167/161939355-cac8c85a-0e30-429c-909a-fde92dd30b57.png)
-  
-  ##### `2. 로그인 시 비밀번호 비교`
-  * 로그인 시 입력받은 비밀번호와 DB에 저장된 암호화된 비밀번호를 비교하여 일치하면 로그인에 성공하도록 로직을 짰다.
-  * 두 값의 비교는 BCryptPasswordEncoder객체의 matches() 메서드를 사용했고, 입력받은 비밀번호와 DB에 저장된 비밀번호가 일치할 경우 입력받은 비밀번호의 값을 암호화된 비밀번호로 바꾸어 주며 로그인에 성공할 수 있었다.
-  * [👉이미지로 전체 흐름 확인하기](https://user-images.githubusercontent.com/84839167/161939367-2daf8776-9865-45d0-94bf-3eb7ba5bf886.png)
-
-  ##### `새로 알게된 점`
-Spring Security는 같은 비밀번호로 회원가입을 해도 매번 다른 랜덤키를 부여한다.  
-같은 문자열임에도 각기 다른 랜덤키를 어떻게 비교를 하는건지 궁금해서 더 알아보았다.  
-	
-BCryptPasswordEncoder는 **비밀번호의 단방향 암호화**를 지원하는 PasswordEncoder 인터페이스의 구현체이고,  
-해시 함수를 사용하여 비밀번호를 암호화하고, **복호화를 할 수 없도록** 만들어졌다고 한다.  
-
-때문에 비밀번호를 서로 비교할 땐 equals()가 아닌 matches()를 사용해야 하는데,
-matches()는 내부적으로 입력받은 패스워드와 암호화된 패스워드가 서로 대칭되는지에 대한 알고리즘을 구현하고 있다고 한다.  
-matches()는 보안을 위해 복호화 할 수 없는 비밀번호를 다룰 때 사용한다는 것을 알게되었다.
-	
-</details>
-
-<br>
-
-#### 3. Open API를 활용한 지하철역 검색
-<details>
-  <summary>📌핵심 기능 설명</summary>
-
-  #### `1. URL연결해서 JSON 데이터 받아오기`
-  * 먼저 서울 열린데이터광장에서 제공하는 URL로 JSON데이터를 받기 위해 URL객체를 생성해 주었다.
-  * 생성된 URL객체에 서울 열린데이터광장에서 받은 고유 key를 넣고, 매개변수로 지하철역 명을 받아 URL을 호출시켰다.
-  * 연결된 URL에서 받은 데이터는 openStream()메서드를 사용해 InputStreamReader에 문자스트림을 보냈고,
-  * 문자스트림은 다시 BufferedReader를 사용해 문자열로 만들어 String 타입으로 result변수에 저장했다.
-  
-  #### `2. JSON 파싱하기`
-  * 위에서 result변수에 저장된 값을 JSON객체로 변환하고 저장하기 위해 JSONObject클래스를 사용했다.
-  * 그렇게 변환된 JSON객체에서 원하는 value 값을 얻어오기 위해 getJSONObject(), getJSONArray()메서드를 사용하였고, for문을 사용해 배열로 된 value값을 얻어와 String 타입의 lineNum변수에 구분자 #을 넣어 담아주었다.
-  * 최종적으로 lineNum변수에 담긴 String객체를 return하여 지하철역 명을 검색하면 해당하는 노선을 반환하는 기능을 구현할 수 있었다.
-  * [👉이미지로 전체 흐름 확인하기](https://user-images.githubusercontent.com/84839167/163132706-c953acb4-d510-494f-b4ba-ee7800bd46e9.png) [👉코드로 확인하기](https://github.com/jeejee1106/ToyProject-RunningGo/blob/0d1a247ff1ba952406353856e31afe61b39c8ceb/src/main/java/com/runninggo/toy/service/PlaceRecmndServiceImpl.java#L19)
-
-</details>
-<details>
-  <summary>⚽트러블 슈팅</summary>
-	
-  ##### `1. 매개변수로 받은 지하철역 명(한글)이 깨져 올바른 데이터를 반환하지 않음`
-  * 첫 번째 시도 : 지하철역 명을 URL에 바로 넣어 데이터 호출 -> ❌비정상작동
-    * 'INFO-200	해당하는 데이터가 없습니다.' 라는 데이터를 반환
-  * 두 번째 시도 : URLEncoder 객체를 사용해 한글 인코딩 후 데이터 호출 -> ⭕정상작동!
-
-서울 열린데이터광장에서 제공한 샘플 URL을 통해 브라우저에서 호출했을 땐 올바른 데이터가 반환되었지만,  
-매개변수로 받은 지하철역 명을 URL에 넣어 호출하니 원하는 대로 동작하지 않았다. (JSON데이터는 잘 받아왔기 때문에 URL문제라고 판단)  
-찾아보니 URL은 운영체제마다 일부 문자를 인식하는 방식이 다르기 때문에 일부 문자는 규칙에 맞게 변환되어야 하고,  
-한글은 인코딩을 통해 규칙에 맞게(ASCII코드를 16진수화한 결과를 두자리의 대문자로) 변환시켜야 한다는 것을 알게 되었다.  
-```
-String encodeSubwayName = URLEncoder.encode(subwayName, "UTF-8");
-```
-위 코드를 추가해 URL에 들어갈 지하철역 명을 인코딩해주었고, 원하는 JSON데이터를 불러올 수 있었다.
-
-  ##### `2. API는 그냥 갖다쓰기만 하면 된다면서요?`
-개발을 처음 접했을 때 부터 들었던 'API는 그냥 가져다 쓰기만 하면 된다.'라는 이야기...  
-정말 제공해주는 코드만 복붙하면 끝나는 건줄 알았다. 그게 아니라면, 사용법이 자세하게 나와있는 줄 알았다.  
-그러나 실제로 내가 할 수 있는 것은 key발급과 샘플코드를 브라우저에 입력해보는 것 뿐이었다.  
-
-`이걸로 뭘 어쩌라고??`  
-이틀간의 구글링을 통해 Open API 사용법을 익혔고, 여러 시행착오 끝에 기능을 구현할 수 있었다.  
-덕분에 연결된 URL로부터 데이터 읽는 방법, 자바의 여러가지 입력 객체들, JSON을 파싱하는 방법 등에 대해서 공부할 수 있었고, 조금 헤매긴 했지만 부족한 점을 깨닫고 더욱 보완할 수 있는 계기가 되었다.
-	
-</details>
-
-<br>
-
-#### 4. 예외 처리 ExceptionHandler
-<details>
-  <summary>📌핵심 기능 설명</summary>
-
-##### `1. 500 Internal Server Error 처리`
-* 각 컨트롤러마다 예외처리 메서드를 만들어 처리할 수도 있지만 나는 클래스를 생성해서 전역으로 처리해주었다.
-* 예외처리 클래스에는 @ControllerAdvice를, 예외를 받아 줄 메서드에는 @ExceptionHandler를 적용했다.
-* @ExceptionHandler의 속성으로는 Exception.class를 지정해주어 모든 Exception을 처리할 수 있게 했다.
-* 반환값으로 500 에러를 받아줄 view를 return시켰다.
-* 이렇게 하면 예외 처리는 잘 되지만 HTTP 상태코드에서 200이 나오게 된다.
-* 상태코드를 500으로 바꿔주기 위해 @ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR)를 적용해주었다.
-* [👉이미지로 전체 흐름 확인하기](https://user-images.githubusercontent.com/84839167/163983221-646c2a95-e28e-48d1-a468-036ff3ee6cde.png)
-
-##### `2. 404 Not Found  처리`
-* 404에러는 서버에러가 아닌 클라이언트 에러이기 때문에 따로 처리를 해주었다.
-* web.xml파일에 404 에러를 받기 위한 설정을 해주었고, 예외처리 클래스에도 따로 메서드를 만들어 @ExceptionHandler의 속성으로 NoHandlerFoundException.class를 지정해주었다.
-* 반환값으로는 404 에러를 받아줄 view를 return시켰다.
-* 마찬가지로 상태코드 200을 404로 바꿔주기 위해 @ResponseStatus(value = HttpStatus.NOT_FOUND)를 적용해주었다.
-* [👉이미지로 전체 흐름 확인하기](https://user-images.githubusercontent.com/84839167/163983392-b969adfa-c5a8-438b-9ed5-5e088966f084.png)
-
-</details>
-<details>
-  <summary>⚽트러블 슈팅</summary>
-
-##### `1. @ExceptionHandler(Exception.class)로 처리되지 않는 404 Not Found`
-* 첫 번째 시도 : 하나의 @ExceptionHandler로 모든 에러를 처리하고자 함 -> ❌비정상작동
-    * 500에러는 return해준 jsp로 연결 되었지만, 404에러는 WAS의 기본 오류 페이지로 연결됨.
-* 두 번째 시도 : 404에러 처리를 위해 설정 추가, 메서드 추가 생성 -> ⭕정상작동!
-
-예외처리 클래스에서 모든 에러를 처리하기 위해 Exception.class를 받았지만 404에러는 WAS의 기본 오류 페이지로 연결되었다.  
-공부해보니 요청은 받았으나 연결할 컨트롤러가 없기 때문에 컨트롤러 자체가 동작하지 않아 Exception이 발생하지 않았고, 이는 DispacherServlet이 처리해주어야 한다는 것을 알게되었다.  
-
-해결방법으로는 throwExceptionIfNoHandlerFound라는 매개변수를 web.xml에 추가함으로써 DispatcherServlet을 커스터마이징 해주는 것이다.  
-이는 요청에 대응되는 Handler를 찾지 못할 경우 예외를 발생시킨다는 의미라고 한다.  
-이 때 발생하는 예외가 NoHandlerFoundException이기 때문에 @ExceptionHandler(NoHandlerFoundException.class)  
-어노테이션과 속성을 적용한 메서드를 새로 만들어서 404에러 처리를 할 수 있었다.
-
-[//]: # (##### `2. Exception의 분류`)
 
 
-</details>
 
-
-#### 00. Open API를 활용한 지하철역 검색
+#### 04. Open API를 활용한 지하철역 검색
 <details>
   <summary>📌 핵심 기능 설명</summary>
-  
+	
+  ##### `1. OCR을 활용한 영수증 등록 시 포인트 적립`
+  * 먼저 OCR을 통한 영수증 등록 로직을 처리하는 DataValidationService에 포인트 적립 로직을 처리하는 PointSaveHistoryService를 @Autowired를 이용해 의존성 주입.
+  * (DataValidationService에 있는 로직을 통해 영수증 등록의 가능여부를 판단한 이후 PointSaveHistoryService 로직이 동작하여, 따로 유효성 검사 로직을 사용하지 않았음)
+  * PointSaveHistoryService에서는 @Autowired로 PointSaveHistoryDAO를 주입해 메서드 호출.
+  * PointSaveHistoryDAO에 주입된 mybatis의 SqlSessionTemplate을 이용해서 pointMapper.xml에 있는 쿼리문을 수행.
+  * **‼결과‼** 영수증 등록 시 등록에 성공하면 포인트 적립. DB 테이블에 포인트 내역 저장.
+  * [👉이미지로 전체 흐름 확인하기](https://user-images.githubusercontent.com/84839167/161678010-5aac77c5-1f72-4ae2-a74b-af5bed0deb9f.png)
+	
+	
 </details>
 
 
