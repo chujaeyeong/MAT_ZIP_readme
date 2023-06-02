@@ -65,7 +65,7 @@
 <br>
 
 ## 4. ERD 설계
-
+<img src="https://user-images.githubusercontent.com/123634960/242927505-6d8c1885-fd63-41a2-84c7-c521fcce39e7.png"  width="850" height="490">
 
 
 <br>
