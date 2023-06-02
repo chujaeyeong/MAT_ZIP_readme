@@ -52,8 +52,9 @@
 * #### `사장 커뮤니티`
   * (각자 본인의 기능 간략하게 작성바람)
 
-* #### `포인트 시스템, 랭킹 시스템(또슐랭 가이드)`
-  * (각자 본인의 기능 간략하게 작성바람)
+* #### `포인트 시스템`
+  * 영수증 등록 시 포인트 적립
+  * 적립된 포인트를 사용해서 상품교환(기프티콘) SENS API 사용해서 문자로 전송
 
 * #### `캘린더`
   * (각자 본인의 기능 간략하게 작성바람)
@@ -71,7 +72,6 @@
   * PointSaveHistoryService에서는 @Autowired로 PointSaveHistoryDAO를 주입해 메서드 호출.
   * PointSaveHistoryDAO에 주입된 mybatis의 SqlSessionTemplate을 이용해서 pointMapper.xml에 있는 쿼리문을 수행.
   * **‼결과‼** 영수증 등록 시 등록에 성공하면 포인트 적립. DB 테이블에 포인트 내역 저장.
-  * [👉이미지로 전체 흐름 확인하기](https://user-images.githubusercontent.com/84839167/161678010-5aac77c5-1f72-4ae2-a74b-af5bed0deb9f.png)
 
   ##### `2. 네이버 클라우드 SENS API를 활용한 포인트 교환(기프티콘)`
   * 기프티콘 교환 API를 사용하려 했으나 개인의 테스트 용도로 사용이 불가능하여, 네이버 SENS API를 이용해 원하는 상품 선택 시 해당 상품의 이미지를 MMS로 전송해주는 방법사용
@@ -80,8 +80,7 @@
   * Service 레이어에서 보유 포인트를 확인 후 상풍의 가격과 비교해서 보유 포인트가 적을 시 예외처리를 했습니다.
   * 보유 포인트를 확인 후 사용한 포인트를 DB에 저장하고, SENS API를 통해 MMS를 전송하게 됩니다.
   * @Transactional을 통해 예외 발생시 포인트 내역에 저장되기 전으로 롤백하도록 처리했습니다.(root-context에 Exception 설정을 추가해서 모든 예외 발생시 롤백되도록 설정했습니다)
-  * **‼결과‼** 보유 포인트가 충분하고, 상품 교환에 성공 시 팝업창을 통해 결과를 알려주고, 회원의 핸드폰번호로 MMS가 전송되게 됩니다.  
-  * [👉이미지로 전체 흐름 확인하기](https://user-images.githubusercontent.com/84839167/161677883-4e4976b7-81ee-480f-98e8-ba1563627b0b.png)
+  * **‼결과‼** 보유 포인트가 충분하고, 상품 교환에 성공 시 팝업창을 통해 결과를 알려주고, 회원의 핸드폰번호로 MMS가 전송되게 됩니다. 
 	
   ##### `3. 포인트 상세이력 관리`
   * 배민 우아한기술블로그 참고(https://techblog.woowahan.com/2587/) 도메인 로직을 참고해서 설계했습니다.
@@ -92,95 +91,61 @@
   * 유효기간만료 이벤트가 발생하면 테이블의 적립아이디를 기준으로 GROUP BY해서 남은 금액을 만료 처리 하면됩니다.
   * 이렇게 하면 기존의 update 로직보다 상세한 이력관리가 가능합니다.
 </details>
+
 <details>
   <summary>⚽트러블 슈팅</summary>
 
 <br>
 	
   ##### `1. 포인트 교환 예외발생 시 트랜잭션(transaction) 롤백 미작동`
-  * 첫 번째 시도 : 아이디 중복 검사 클래스, 비밀번호 일치 검사 클래스를 addValidators() 메서드를 사용해 각각 바인딩 -> ⭕정상작동!  
-  * 두 번째 시도 : 두 클래스를 하나의 클래스로 구현해도 될 것 같다는 생각에 JoinCkValidator클래스를 만들어 코드를 합친 후 바인딩할 객체가 하나이기 때문에 setValidator() 메서드로 변경 -> ❌비정상작동
-    * 하고자 했던 바인딩을 통한 유효성 검사는 잘 되었지만, 잘 되던 데이터 형식 유효성 검사가 작동하지 않았다.
-  * 세 번째 시도 : 객체가 하나이지만 혹시나 하는 마음에 addValidators() 메서드로 다시 변경 -> ⭕정상작동!
+  * @Transactional exChange메소드 내부 checkPoint(), insertUsePoint(), sendSms() 메서드 Exception 발생 시 기존 DB에 저장된 데이터를 롤백
+  * 첫 번째 시도 : sendSms() 메서드에 테스트용 런타임 에러 적용(DB에 저장된 후 동작하는 메서드) DB 롤백 확인  -> ❌롤백 미작동
+  * 두 번째 시도 : root context에 트랜잭션 Bean 추가. -> ❌롤백 미작동
+  * 세 번째 시도 : cglib 라이브러리를 추가 / servlet context에 proxy-target-class 속성 추가 -> ⭕정상작동!
+	* Spring AOP 사용. 인터페이스를 사용하나 proxy-target-class 속성을 사용하기 위해 cglib 라이브러리 추가
+	* DB설정을 root context 쪽에 할 경우, 이 DB설정은 servlet context쪽에 설정된 Bean들에는 적용이 안된다.
+	* transaction관련 설정을 servlet context에 해줘야한다.
 <details>
   <summary>👉코드확인</summary>
 
   <div markdown="1">    
 
   ```java
-	  //첫 번째 코드 - 정상작동
-	  @InitBinder
-	  public void validator(WebDataBinder binder) {
-		  binder.addValidators(IdDuplCkValidator);
-	  	  binder.addValidators(passMctCkValidator);
-	  }
-	  
-	  //두 번째 코드 - 비정상작동
-	  @InitBinder
-	  public void validator(WebDataBinder binder) {
-		  binder.setValidator(joinCkValidator);
-	  }
+	@Override
+	@Transactional
+	// 적립 포인트 상품 교환 비즈니스 로직
+	public void exChange(String user_id, int id) {
 
-	  //세 번째 코드 - 정상작동
-	  @InitBinder
-	  public void validator(WebDataBinder binder) {
-		  binder.addValidators(joinCkValidator);
-	  }
+		PointSaveHistoryVO userpoint = PointExchangeHistoryDAO.pointsaveFind(user_id);
+		ProductPointVO product = PointExchangeHistoryDAO.productPointFind(id);
+
+		try {
+			// 보유 포인트 확인 메서드
+			checkPoint(userpoint, product);
+			// 보유 포인트 확인 후 교환된 포인트 INSERT
+			insertUsePoint(userpoint, product);
+			// 교환된 기프티콘 이미지 MMS 전송
+	  		sendSms(userpoint, product);
+	  
+		} catch (Exception e) {
+			e.printStackTrace();
+		}	
+	}
+	// MMS 전송(네이버 SENS API)
+	private void sendSms(PointSaveHistoryVO userpoint, ProductPointVO product) {
+	  
+		SendSmsVO sms = new SendSmsVO();
+		sms.setUser_id(userpoint.getUser_id());
+		sms.setImg(product.getImg());
+		//sms.setTel(tel);
+	  
+		sensapi.sendSMS(sms);
+	  
+		throw new IllegalArgumentException("메세지 전송 오류");
+	}
   ```
   </div>
 </details>
-	
-객체가 하나인데 setValidator() 메서드가 아닌 addValidators() 메서드를 사용했을 때 정상 작동하는 이유가 무엇일까?  
-사실 정확한 이유는 찾지 못했지만, 아래 로그인 시 유효성 검사까지 완료해보니 짐작 가는 부분이 생겼다.  
-	
-  ##### `2. 로그인 시 유효성 검사 미작동`
-  * 첫 번째 시도 : validator가 아닌 Model을 사용해서 아이디, 비밀번호가 존재하지 않으면 메시지를 전송하는 방식을 적용 -> ⭕정상작동!
-  * 두 번째 시도 : 로그인도 validator를 적용해보고 싶다는 생각에 아이디, 비밀번호 존재 여부를 검사하는 클래스를 만든 후 회원가입과 똑같이 addValidators() 메서드 사용 -> ❌비정상작동
-    * 회원가입 시에 필요한 MemberDto객체의 데이터 형식 검사를 진행하며 에러 발생
-  * 세 번째 시도 : setValidator() 메서드로 변경 -> ⭕정상작동!
-<details>
-  <summary>👉코드확인</summary>
-
-  <div markdown="1">    
-
-  ```java
-	  //첫 번째 코드 - 정상작동 (login메서드)
-	  if(memberService.login(memberDto) != 1){
-		  model.addAttribute("loginFailMsg", "아이디 또는 비밀번호가 올바르지 않습니다.");
-		  return "/member/loginForm";
-          }
-	  
-	  //두 번째 코드 - 비정상작동
-	  @InitBinder
-	  public void validator(WebDataBinder binder) {
-		  binder.addValidators(LoginCkValidator);
-	  }
-	  
-	  //세 번째 코드 - 정상작동
-	  @InitBinder
-	  public void validator(WebDataBinder binder) {
-		  binder.setValidator(LoginCkValidator);
-	  }
-  ```
-  </div>
-</details>
-
-<br>
-	
-로그인 시에는 데이터 형식을 검사하길 원하지 않았는데 두 번째 시도에선 데이터 형식을 검사하며 에러가 발생했다.  
-문득 setValidator() 메서드가 아닌 addValidators() 메서드를 사용하고 있었다는 사실을 깨닫고, setValidator() 메서드로 수정해주었다.  
-이 과정에서 회원가입 두 번째 시도와 같이 데이터 형식 검사를 하지 않는다는 것을 알아냈고,  힌트를 얻을 수 있었다.
-
-위 두 경우를 보면 회원가입 유효성 검사에서는 addValidators()메서드를,  
-로그인 유효성 검사에서는 setValidator()메서드를 사용해야 정상작동하는 것을 알 수 있다.  
-회원가입도 검사할 객체가 하나인데 왜 addValidators() 메서드만 정상작동하는걸까?  
-내가 찾은 답은 `'어노테이션을 통한 데이터 유효성 검사 또한 하나의 유효성 검사 객체(?)로 인식한다.'` 이다.  
-
-`그렇다면?`  
-회원가입에서는 ①데이터 형식 유효성 검사와 ②커스텀 유효성 검사 두 개가 이루어지니 **addValidators()메서드를**,  
-로그인은 ①커스텀 유효성 검사만 하면 되니 **setValidator()메서드를** 사용하면 된다는 것이 내가 찾은 결론이다.  
-또한 검증객체가 하나 이상일 땐 제약조건 어노테이션으로 정의한 데이터 형식 유효성 검사가 우선적으로 이루어진다는 것을 예상할 수 있다.
-	
 </details>
 
 <br>
