@@ -215,7 +215,117 @@
   * **‼결과‼** 각 세부 카테고리 게시판의 기본 CRUD, 댓글 insert 기능을 구현 완료. 
 	
 </details>
+	
+<details>
+  <summary>⚽ 트러블 슈팅</summary>
 
+  ##### `1. 영수증 등록 후 리뷰 작성 시 영수증 list를 출력하지 못하는 문제`
+  * 리뷰 등록 시, 먼저 영수증 등록 정보를 writeReview.jsp 로 페이지 이동하여 출력해야되는데, receiptList (영수증의 리스트) 의 모든 요소가 null로 출력되는 문제가 발생함. 디버깅 했더니  receiptList의 size (리뷰할 영수증의 갯수) 는 정상적으로 콘솔창에 출력되고 있음.
+
+<details>
+  <summary>👉 문제가 있던 코드확인</summary>
+  <div markdown="1">    
+
+  ```java
+	<!-- 영수증 등록 정보를 가져오자 -->
+	<select id="getReceiptWithRestaurant" parameterType="String" resultType="MZRegisterReceiptDTO">
+		SELECT r.*, m.* 
+		FROM MAT_ZIP.mzregisterinfo m 
+		JOIN MAT_ZIP.restaurant r ON m.storePhoneNumber = r.tel 
+		WHERE m.userID = #{user_id} 
+		AND m.no NOT IN 
+		(SELECT receipt_id FROM MAT_ZIP.cs_review)
+    </select>
+
+  ```
+  </div>
+</details>
+	
+  * 1️⃣ 첫 번째 시도 : 쿼리 작성에서 오타나 잘못 작성된 부분이 있을 수도 있어서, getReceiptWithRestaurant 쿼리를 그대로 MySQL 스크립트에서 실행함. -> 쿼리에 문제 없음. 정상적으로 mzregisterinfo 테이블과 restaurant 테이블을 join 하고, 더미데이터로 추가해둔 cs_review 테이블의 receipt_id도 정상적으로 제외하여 리뷰를 작성할 데이터만 select 하는 것을 확인.
+  * 2️⃣ 두 번째 시도 : MZRegisterReceiptDTO 에 추가한 MZRegisterInfoVO와 RestaurantVO에 쿼리 결과가 매핑되지 못했을 수도 있음. -> ReviewMapper.xml 에 추가한 쿼리 결과의 각 열이 MZRegisterInfoVO와 RestaurantVO의 필드와 일치하는 것을 확인함.
+  * 3️⃣ 세 번째 시도 : MZRegisterReceiptDTO 클래스의 toString() 메서드가 MZRegisterInfoVO와 RestaurantVO의 toString() 메서드를 호출하는지 확인 -> MZRegisterReceiptDTO, MZRegisterInfoVO, RestaurantVO 클래스의 toString() 메서드는 딱히 문제 없이 잘 작성되었음을 확인함. 
+  * **‼원인‼** SQL 쿼리 결과 매핑 문제임을 확인함.	
+	
+<br>
+	
+  * 4️⃣ 네 번째 시도 : 더 정확한 매핑을 위해 MyBatis의 resultMap을 이용해서 SQL 쿼리 결과를 올바르게 MZRegisterReceiptDTO 객체에 매핑 시도
+	* 이전 쿼리문에서는 resultType="MZRegisterReceiptDTO" 을 통해 DTO에 매핑을 했지만, MyBatis의 resultMap은 SQL 쿼리 결과를 도메인 모델 또는 DTO 객체에 매핑하는 역할을 한다고 함. 
+	* MyBatis의 resultMap은 일반적인 resultType 매핑보다 더 세밀하게 컨트롤 할 수 있는데, 나처럼 쿼리가 DB에서도 잘 작동하도록 작성했는데도 매핑을 하지 못해 에러가 발생할 때는 resultMap으로 세밀하게 매핑을 하는 방법이 있다고 하여 적용해보기로 함.
+	 
+	<div markdown="1">    
+		
+  	```java	
+	<!-- resultMap 매핑 예시 쿼리 -->
+	<resultMap id="yourResultMap" type="com.yourpackage.YourDTO">
+	    <result property="propertyOfYourDTO" column="columnOfYourSQLResult"/>
+	    <!-- more result mappings... -->
+	</resultMap>
+  	```
+		
+  	</div>
+
+	* 나는 항상 resultType으로 도메인 모델 (VO) 에 매핑을 했는데, 이번에 resultMap에 대해서 알게 됨. 보통 resultMap은 이런 구조로 코드를 작성할 수 있음. 여기서 id는 resultMap의 고유 식별자, type은 결과를 매핑할 DTO의 풀 클래스 이름이고, result 요소는 SQL 결과의 열(column)과 DTO의 속성(property)을 매핑함.
+	* 단순히 DTO의 속성 이름이 SQL 결과의 열 이름과 정확히 일치하지 않는 경우 또는 복잡한 객체 구조를 가진 DTO에 결과를 매핑해야 하는 경우에 resultMap을 사용하면 유용하다고 함. 난 다소 복잡한 DTO (모델 2개를 합쳐서 DTO를 만들었음) 를 사용하기때문에 후자인 것으로 추정.
+	
+	<br>
+	
+  * **‼결과‼** MyBatis의 resultMap으로 쿼리 매핑에 성공함! DTO에 주입했던 mzRegisterInfoVO 와 restaurantVO 의 필드를 mzregisterinfo 테이블과 restaurant 테이블의 컬럼에 하나하나 수동 매핑해줌. 수동 매핑 후 쿼리를 좀 더 상세하게 작성하여 리뷰 작성 시 영수증 list를 출력하는지 테스트한 결과, 원하는대로 상호명과 주소 정보가 잘 출력되는 것을 확인함.
+	
+<details>
+  <summary>👉 수정하여 문제를 해결한 코드 확인 </summary>
+  <div markdown="1">    
+
+  ```java
+	<!-- 영수증 등록 정보를 가져오자 -->
+	<resultMap id="MZRegisterReceiptDTOMap" type="com.mat.zip.board.MZRegisterReceiptDTO">
+	    <association property="mzRegisterInfoVO" javaType="com.mat.zip.registerAndSearch.model.MZRegisterInfoVO">
+		<result property="no" column="m_no" />
+		<result property="userId" column="m_userId" />
+		<result property="storeAddress" column="m_storeAddress" />
+		<result property="storePhoneNumber" column="m_storePhoneNumber" />
+		<result property="buyTime" column="m_buyTime" />
+	    </association>
+	    <association property="restaurantVO" javaType="com.mat.zip.registerAndSearch.model.RestaurantVO">
+		<result property="no" column="r_no" />
+		<result property="landNumAddress" column="r_landNumAddress" />
+		<result property="roadNameAddress" column="r_roadNameAddress" />
+		<result property="name" column="r_name" />
+		<result property="status" column="r_status" />
+		<result property="tel" column="r_tel" />
+		<result property="food" column="r_food" />
+	    </association>
+	</resultMap>
+
+	<select id="getReceiptWithRestaurant" parameterType="String" resultMap="MZRegisterReceiptDTOMap">
+	    SELECT r.no as r_no, r.landNumAddress as r_landNumAddress, r.roadNameAddress as r_roadNameAddress,
+		   r.name as r_name, r.status as r_status, r.tel as r_tel, r.food as r_food,
+		   m.no as m_no, m.userId as m_userId, m.storeAddress as m_storeAddress,
+		   m.storePhoneNumber as m_storePhoneNumber, m.buyTime as m_buyTime
+	    FROM MAT_ZIP.mzregisterinfo m 
+	    JOIN MAT_ZIP.restaurant r ON m.storePhoneNumber = r.tel 
+	    WHERE m.userID = #{user_id} 
+	    AND m.no NOT IN 
+	    (SELECT receipt_id FROM MAT_ZIP.cs_review)
+	</select>
+  ```
+	  
+  </div>
+</details>
+
+  * **‼해석‼** MZRegisterInfoVO와 RestaurantVO의 각 필드와 SQL 쿼리 결과의 열을 매핑하기 위해 resultMap을 사용함. 
+	resultMap 내에서 association 태그를 사용하여 복합 DTO 내의 두 개의 객체를 따로 관리 진행하고, 또한 SQL 쿼리에서는 각 필드에 별칭(alias)을 사용하여 resultMap에서 참조할 수 있도록 하고, 별칭을 사용하여 SQL 결과의 열과 DTO의 속성을 연결함
+  * 보통은 resultType 을 이용하면 정상적으로 모델과 매핑할 수 있지만, 두개 이상 모델이나 다소 복잡한 DTO와 매핑을 진행할 때는 resultMap으로 세밀한 컨트롤을 하자! 라는 것을 학습.
+
+	
+	
+	
+</details>
+
+	
+	
+	
+	
+	
 <br>
 
 #### 5) 사장 커뮤니티
