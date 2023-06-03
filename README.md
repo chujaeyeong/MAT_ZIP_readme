@@ -36,10 +36,12 @@
 
 ## 3. 기능 구현
 * #### `회원가입, 로그인, 마이페이지, AI챗봇`
-  * (각자 본인의 기능 간략하게 작성바람)
+  * 영수증, 카드내역을 통한 또 갔던 맛집 등록기능 
+  * 2회 이상 등록된 맛집 검색기능 
 
 * #### `영수증 등록, 검색기능`
-  * (각자 본인의 기능 간략하게 작성바람)
+  * 영수증, 카드내역을 통한 또 갔던 맛집 등록기능 
+  * 2회 이상 등록된 맛집 검색기능 
 
 * #### `음식점 상세페이지`
   * 음식점 상세정보 CRUD 기능 및 카테고리별 음식점 검색 기능
@@ -71,6 +73,152 @@
 <br> -->
 
 ## 5. 핵심 기능 설명 & 트러블 슈팅
+
+#### 2) 영수증 등록, 맛집 검색
+<details>
+  <summary>📌 핵심 기능 설명</summary>
+
+  📌 https://docs.google.com/presentation/d/1ctdr4CTAJIyls9e24kb9k101kQK0VD6m/edit?usp=sharing&ouid=104520414346845957015&rtpof=true&sd=true  
+  📌 위 링크엔 핵심 기능의 상세한 설명과 근거, 서버 아키텍쳐	구성, 트러블 슈팅에 대한 설명이 준비 되어있습니다.
+
+  ##### `1. OCR을 활용한 영수증 등록`
+  * 1. 먼저 유저는 업로드할 영수증 파일을 준비합니다. then Drag and Drop 을 사용하여 영수증을 Submit 합니다.
+  * 2. FileUploadService 레이어에서 업로드 된 영수증은 AWS S3에 저장되고 bytes data로 OCR API를 호출합니다. 
+  * 3. OCRService 레이어에서 추출된 데이터의 주소(지번, 도로명), 전화번호, 결제일시를 
+  * 4. MZRegularExpression 에서 직접 구현한 자바 정규식으로 처리후 일반화(통일화) 과정을 거칩니다.
+  * 5. 일관성을 가진 추출데이터는 List에 저장되어 validation test를 수행할 것입니다.
+  * 6. DataValidationService 레이어에서 등록이 첫 번째 인지 두 번째 인지 혹은 DB에 저장되어도 되는 데이터인지 검사후 DB로 들어갑니다.
+  * 7. RestAPI 방식으로 Front에 리턴하여 각각의 결과에 맞는 값을 가지고 마커를 등록할지 혹은 경고메시지를 보낼지 결정합니다.
+  * **‼결과‼** 영수증 등록 시 2번 등록에 성공하면 최초 등록자 기준 마커가 지도에 등록됩니다..
+
+  ##### `2. 검색 기능`
+  * 유저가 검색할 수 있는 경우의 수는 3가지 입니다. 
+  * 정확한 상호명 검색
+  * 상호명에 포함된 부분 키워드로 다중 검색	
+  * 음식 카테고리로 다중 검색 
+  * -자동완성기능을 추가하여 각각의 경우의수에 추가로 부분 키워드를 내포하는 키워드를 자동완성 해줍니다.
+  * 지도 새로 고침 기능을 추가하였습니다. 
+  * 서버쪽으로 보내는 요청은 모든 키워드에서 영수증이 등록된 식당의 데이터를 가져오게 하는 것입니다. 
+  * 한 글자씩 쳐도 계속해서 쿼리를 수행하여 느린 전송 결과를 받는 상황이었지만 
+  * 캐시 역할을 하는 List를 서버쪽에 구현하여 가져온 결과가 있으면 Response 하지 않도록 구현하였습니다. (실제 캐시는 구현하지 않았습니다)
+  * 결과 검색버튼을 누를시 마커를 등록하고 마커에 이름과 상세페이지로 넘어갈 수 있는 A태그를 구현하였습니다.
+  * A태그는 검색 결과중 주소를 가지고 검색하고 따라서 상세페이지를 각각 보여줄 수 있게 됩니다. 
+  * 이후 개선방안으로는 가게의 고유 아이디만을 이용해 상세페이지를 가져올 수 있도록 수정하는 것입니다. 
+
+  * **‼결과‼** 검색결과를 가지고 마커를 찍어주며 상세페이지로 이동할 수 있게됩니다.
+	
+</details>
+
+<details>
+  <summary>⚽ 트러블 슈팅</summary>
+
+<br>
+	
+  ##### `1. 자동완성 캐시 기능`
+	
+<details>
+	
+  <summary>👉문제 및 해결방안 , 결과 확인</summary>
+  * 문제 : 검색어 자동완성 기능으로 검색을 하게되면 매 자음 모음마다 DB에서 불러와 매 호출마다 많은양의 데이터를 가져왔습니다. 따라서 데이터가 많아지면 호출이 늦어지는 문제 발생 5~6초씩 자동완성에 소요되는 시간이 길었습니다.
+  * 해결 방안 : 따라서 캐시처럼 동작하는 리스트를 만들어 가져온게 있다면 쿼리를 response 하지 않게 만들었습니다. 
+  * 결과 : 5~6초씩 걸리던 자동완성이 0.1초도 안되어 계속 캐시처럼 남아있게 응답 시간 개선 
+  * 사진 0 <자리
+
+</details>
+
+  ##### `2. 여러개의 마커가 각각의 인포윈도우로 인식 안되는 문제 `
+	
+<details>
+	
+  <summary>👉문제 및 해결방안 , 결과 확인</summary>
+  * 문제 : 사진1 에서 나온 값들이 , 사진2 에 한 주소로만 계속 동시에 찍히는 문제 발생, 
+  * 원인 : 사진3
+  * 해결 방안 : 클로저 함수를 이용하여 함수를 호출할 때마다 새로운 독립적인 환경을 생성
+
+  * 설명 : 함수를 호출할 때마다 새로운 독립적인 환경을 생성해야 할 때 클로저를 활용할 수 있습니다.
+  * 해당 코드에서는 for문을 통해 생성된 각 마커와 이름을 클로저 함수의 인자로 전달하고 있습니다. 
+  * 클로저 함수는 전달받은 마커와 이름을 사용하여 이벤트 리스너를 등록합니다.
+  * 각각의 클로저 함수는 자신이 생성될 때의 렉시컬 환경을 기억하고 있기 때문에, 
+  * 클로저 함수 내부에서 사용되는 변수(marker, name)는 해당 클로저 함수가 생성될 당시의 값으로 유지됩니다. 
+  * 이를 통해 각 마커와 이름이 클로저 함수 내부에서 독립적으로 사용될 수 있게 됩니다. 
+  * 따라서 각 마커를 클릭할 때 해당 마커에 연결된 이름이 인포윈도우로 표시됩니다.
+  * 이를 통해 각 마커마다 고유한 이름을 표시할 수 있으며, 클로저를 사용하여 함수 외부에서 해당 이름에 접근할 수 있도록 구현하였습니다.
+	
+  <div markdown="1">    
+	  
+  ```java
+	'''
+		function addMarker(name,position) {
+			            // 마커를 생성합니다
+			            var marker = new kakao.maps.Marker({
+			                position: position,
+			                clickable: true
+			            });
+			            // 마커가 지도 위에 표시되도록 설정합니다
+			            marker.setMap(map);
+			            var iwContent = '<div style="padding:5px;"><a href="https://map.kakao.com/link/to/Hello World!,'+ marker.getPosition().getLat()+','+ marker.getPosition().getLng()+'" style="color:blue" target="_blank">길찾기</a>'+name+'</div>', // 인포윈도우에 표출될 내용으로 HTML 문자열이나 document element가 가능합니다
+			            iwRemoveable = true; // removeable 속성을 ture 로 설정하면 인포윈도우를 닫을 수 있는 x버튼이 표시됩니다
+			        	// 인포윈도우를 생성합니다
+			        	var infowindow = new kakao.maps.InfoWindow({
+			           	 content : iwContent,
+			           	 removable : iwRemoveable
+			        	});
+			       		 // 마커에 클릭이벤트를 등록합니다
+			        	kakao.maps.event.addListener(marker, 'click', function() {
+			              // 마커 위에 인포윈도우를 표시합니다
+			             	 infowindow.open(map, marker);  
+			        	});
+			            // 생성된 마커를 배열에 추가합니다
+			            markers.push(marker);
+			        }
+<!-- ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////-->
+		
+	  	function addMarker(position, name , address) {
+	
+	                    // 마커를 생성합니다
+	                    var marker = new kakao.maps.Marker({
+	                        position: position,
+	                        clickable: true
+	                    });
+	
+	                    // 마커가 지도 위에 표시되도록 설정합니다
+	                    marker.setMap(map);
+	
+	                    // 클로저를 사용하여 인포윈도우 생성
+	                    (function(marker, name) {
+	                        // 마커에 클릭 이벤트를 등록합니다
+	                        kakao.maps.event.addListener(marker, 'click', function() {
+	                            // 이전에 열려있던 인포윈도우가 있으면 닫기
+	                            if (openInfowindow) {
+	                                openInfowindow.close();
+	                            }
+	
+	                            // 새로운 인포윈도우 생성 및 열기
+	                            var infowindow = new kakao.maps.InfoWindow({
+						          content: '<div style="width:150px;text-align:center;padding:6px 0;"><span style="color: black;">'+name+'</span><br>'+
+						          	'<a href="mainpage/mzonee?landNumAddress='+address+'">가게 정보 보러가기</a></div>',
+					              removable: true
+	                            });
+	                            infowindow.open(map, marker);
+	
+	                            // 열린 인포윈도우를 저장
+	                            openInfowindow = infowindow;
+	                        });
+	                    })(marker, name);
+	                }
+
+  ```
+	  
+  </div>
+</details>	
+  
+
+</details>
+
+<br>
+
+
+<br>
 
 #### 3) 음식점 상세페이지
 <details>
