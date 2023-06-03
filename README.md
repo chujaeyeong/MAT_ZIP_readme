@@ -314,7 +314,10 @@
   <summary>📌 핵심 기능 설명</summary>
 
   📌 https://docs.google.com/presentation/d/1ctdr4CTAJIyls9e24kb9k101kQK0VD6m/edit?usp=sharing&ouid=104520414346845957015&rtpof=true&sd=true  
-  📌 위 링크엔 핵심 기능의 상세한 설명과 근거, 서버 아키텍쳐	구성, 트러블 슈팅에 대한 설명이 준비 되어있습니다.
+  📌 위 링크엔 핵심 기능의 상세한 설명과 근거, 서버 아키텍쳐	구성, 트러블 슈팅에 대한 설명이 준비 되어있습니다. 
+<br>
+<br>
+  🔜 개선사항 : **DataValidationService에 있는 서비스 각각의 케이스들을 각각 분리하여 절차 지향적으로 코드를 작성하고, 앞으로는 Test Code로 작성하고, 리팩토링할 수 있게 대비한다.**
 
   ##### `1. OCR을 활용한 영수증 등록`
   * 1. 먼저 유저는 업로드할 영수증 파일을 준비합니다. then Drag and Drop 을 사용하여 영수증을 Submit 합니다.
