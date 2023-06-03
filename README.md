@@ -122,7 +122,7 @@
   * 문제 : 검색어 자동완성 기능으로 검색을 하게되면 매 자음 모음마다 DB에서 불러와 매 호출마다 많은양의 데이터를 가져왔습니다. 따라서 데이터가 많아지면 호출이 늦어지는 문제 발생 5~6초씩 자동완성에 소요되는 시간이 길었습니다.
   * 해결 방안 : 따라서 캐시처럼 동작하는 리스트를 만들어 가져온게 있다면 쿼리를 response 하지 않게 만들었습니다. 
   * 결과 : 5~6초씩 걸리던 자동완성이 0.1초도 안되어 계속 캐시처럼 남아있게 응답 시간 개선 
-  * 사진 0 <자리
+  * (https://user-images.githubusercontent.com/123634960/243025866-41ebcb1e-d4b8-487b-ad57-11d6cfa74bb4.png)
 
 </details>
 
@@ -131,8 +131,16 @@
 <details>
 	
   <summary>👉문제 및 해결방안 , 결과 확인</summary>
-  * 문제 : 사진1 에서 나온 값들이 , 사진2 에 한 주소로만 계속 동시에 찍히는 문제 발생, 
-  * 원인 : 사진3
+	
+![image](https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/a1bd24a2-d75b-469f-94fb-ff25b342b101)
+
+![image](https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/3ef8ff71-f5ca-457d-82c2-ae6871d4d6dd)
+	
+  * 문제 : 위 사진1 에서 나온 값들이 , 사진2 에 한 주소로만 계속 동시에 찍히는 문제 발생, 
+  * 원인 : 
+
+	![image](https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/cc673ed4-f133-4bea-b811-17c6815d6336)
+	
   * 해결 방안 : 클로저 함수를 이용하여 함수를 호출할 때마다 새로운 독립적인 환경을 생성
 
   * 설명 : 함수를 호출할 때마다 새로운 독립적인 환경을 생성해야 할 때 클로저를 활용할 수 있습니다.
