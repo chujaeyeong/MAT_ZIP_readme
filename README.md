@@ -16,10 +16,11 @@
 ## 2. 사용 기술
 ### `Back-end`
 * Java 8
-* Spring Framework 5.0.1
+* Spring Framework 5.0.1, Spring MVC
+* Junit5
 * Maven
 * Mybatis
-* MySQL 8.0.32
+* Eclipse, Visual Studio Code
 
 ### `Front-end`
 * HTML
@@ -28,9 +29,27 @@
 * JQuery 3.6.4
 * BootStrap 4.1
 
-### `Server`
-* tomcat 8.5
-* AWS
+### `DevOps`
+* AWS EC2, S3, RDS, CloudFront, Route 53, ALB
+* Tomcat 8.5
+* MySQL 8.0.32
+
+### `Collaboration`
+* Git, Sourcetree 
+* Slack 
+* Notion
+
+### `External API`
+* Naver OCR
+* Naver, Kakao Social Login
+* CLOVA Chatbot API
+* Naver SENS API
+* Naver AI Sentiment
+* Toss Payments API
+* Google chart API
+* Kakao Map 
+* Geo Location
+
 
 <br>
 
@@ -63,7 +82,10 @@
   * 리뷰게시판은 영수증 등록 여부를 체크하여 영수증 등록을 한 유저만 리뷰를 남길 수 있도록 제약사항을 추가하여 리뷰의 신뢰도를 강화함.
 
 * #### `사장 커뮤니티`
-  * (각자 본인의 기능 간략하게 작성바람)
+  * 구독 결제 시 사장회원등록, 결제내역 DB 저장 - 결제 실패 시, 트랜잭션 처리를 통해 과정을 취소
+  * 결제내역 DB를 기반으로 데이터 선별하여 매출차트 및 재방문 차트 구현
+  * 리뷰 AI 감정분석 차트 - 사용자들이 작성한 리뷰 데이터를 기반으로 AI 감정분석 API를 사용하여 감정분석 결과를 출력, 이를 통해 긍정 점수가 높은 리뷰 top5와 부정 점수가 높은 리뷰 top5를 사용자에게 제공.
+  * 자유게시판 및 좋아요 기능- 게시글 수정, 삭제 시에 글 정보를 자동으로 불러와 사용자 경험을 높였고, 게시글 검색 기능을 통해 제목과 내용에 포함된 키워드를 가진 게시글을 찾을 수 있게 함. 또한 좋아요 기능을 통해 사용자가 게시글에 좋아요를 표시할 수 있게 만듬.
 
 * #### `포인트 시스템`
   * 영수증 등록 시 포인트 적립
@@ -94,9 +116,11 @@
   * 이메일 폼 작성 메소드에서 폼 작성하여 전송 메소드 호출하여 메일 전송 후 인증번호 리턴
   * 이메일 전송 메소드에 작성 폼을 받고, 메시지를 생성하여 입력된 이메일로 전송
   * **!!결과!!** 이메일 인증 버튼 클릭 시 인증번호가 담긴 메일 전송!
-  * [👉이미지로 전체 흐름 확인하기] (url)
+  * [👉이미지로 전체 흐름 확인하기] ![image](https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/2fca5772-0e26-4c70-a188-240670c26717)
+
   * **활용** UUID를 생성하여 Low time 부분만 변수 선언 후 임시 비밀번호로 update하여 메일 전송
-  * [👉이미지로 전체 흐름 확인하기] (url)
+  * [👉이미지로 전체 흐름 확인하기] ![image](https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/9ec3953e-49d4-4296-8884-4c1a01adec49)
+
   
   ##### `2. OAuth 2.0 프로토콜 기반 사용자 인증 후 간편 로그인`
   * 로그인 API 사용시 필요한 값(클라이언트 아이디, 시크릿 키, 콜백 URI, 세션 상태, 프로필 URL)을 변수 선언
@@ -107,7 +131,8 @@
   * json으로 넘어온 값을 파싱하여 필요한 값을 dto에 저장
   * **!!결과!!** 회원 조회 후 없으면 자동 회원가입 진행, 있으면 세션에 아이디 저장 후 콜백 url로 리턴
     * 카카오 로그인은 전화번호를 받을 수 없어 마이페이지로 포워딩하여 정보 수정 받도록 진행
-  * [👉이미지로 전체 흐름 확인하기] (url)
+  * [👉이미지로 전체 흐름 확인하기] ![image](https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/96bd4fc5-7253-48fe-a244-84ef74f00961)
+
   
   ##### `3. 웹소켓과 CLOVA API를 활용한 웹소켓`
   * TextWebSocketHandler를 상속하는 챗봇 핸들러를 작성
@@ -118,7 +143,7 @@
   * javascript로 수신한 메시지 json을 파싱하여 description의 부분이 유저에게 보일 수 있도록 메소드 정의
   * 유저가 메인이 아닌 다른 페이지로 이동할 경우 연결 해제
   * **결과!!** 클로바 챗봇 API에 작성한 시나리오 흐름에 따라 FAQ 진행
-  * [👉이미지로 전체 흐름 확인하기] (url)
+  * [👉이미지로 전체 흐름 확인하기] ![image](https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/28a77727-e1b5-4f1f-a267-bf5f4becc4b7)
 </details>
 
 <details>
@@ -490,7 +515,8 @@
 	* 'naverMapsURL' 변수를 생성해서 네이버 지도 URL을 할당
   * location.href를 사용하여 생성된 URL로 페이지 이동
 	
-  * **‼결과‼** 버튼을 클릭하면 name, landAddress, roadAddress를 인코딩하여 URL에 추가한 후 페이지를 이동   * [👉이미지로 전체 흐름 확인하기](null)
+  * **‼결과‼** 버튼을 클릭하면 name, landAddress, roadAddress를 인코딩하여 URL에 추가한 후 페이지를 이동   
+<!-- 	* [👉이미지로 전체 흐름 확인하기](null) -->
 	
  ##### `5. 카카오 API 사용'
  -> 해당 음식점의 주소를 받아서 지도 띄우기 + 해당 음식점의 위치를 기반으로 카테고리별 장소 검색
@@ -836,6 +862,10 @@
   * poll을 이용해 List에 저장된 포인트를 상품의 가격과 비교하여 다시 상세 테이블에 저장하고, 상품의 가격이 0원이 되면 종료되는 로직을 구현했습니다.
   * 유효기간만료 이벤트가 발생하면 테이블의 적립아이디를 기준으로 GROUP BY해서 남은 금액을 만료 처리 하면됩니다.
   * 이렇게 하면 기존의 update 로직보다 상세한 이력관리가 가능합니다.
+  * ![image](https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/47e96e9a-1591-4ede-ac4a-bac002e21264)
+
+
+	
 </details>
 
 <details>
