@@ -617,15 +617,15 @@
   * 리뷰 등록 시, 먼저 영수증 등록 정보를 writeReview.jsp 로 페이지 이동하여 출력해야되는데, receiptList (영수증의 리스트) 의 모든 요소가 null로 출력되는 문제가 발생함. 디버깅 했더니  receiptList의 size (리뷰할 영수증의 갯수) 는 정상적으로 콘솔창에 출력되고 있음.
 
 <details>
-  <summary>👉 문제가 있던 코드확인</summary>
+  <summary>👉 문제가 있던 쿼리 확인</summary>
   <div markdown="1">    
 
   ```java
 	<!-- 영수증 등록 정보를 가져오자 -->
 	<select id="getReceiptWithRestaurant" parameterType="String" resultType="MZRegisterReceiptDTO">
 		SELECT r.*, m.* 
-		FROM MAT_ZIP.mzregisterinfo m 
-		JOIN MAT_ZIP.restaurant r ON m.storePhoneNumber = r.tel 
+		FROM mzRegisterInfo m 
+		JOIN restaurant r ON m.storePhoneNumber = r.tel 
 		WHERE m.userID = #{user_id} 
 		AND m.no NOT IN 
 		(SELECT receipt_id FROM MAT_ZIP.cs_review)
@@ -666,7 +666,7 @@
   * **‼결과‼** MyBatis의 resultMap으로 쿼리 매핑에 성공함! DTO에 주입했던 mzRegisterInfoVO 와 restaurantVO 의 필드를 mzregisterinfo 테이블과 restaurant 테이블의 컬럼에 하나하나 수동 매핑해줌. 수동 매핑 후 쿼리를 좀 더 상세하게 작성하여 리뷰 작성 시 영수증 list를 출력하는지 테스트한 결과, 원하는대로 상호명과 주소 정보가 잘 출력되는 것을 확인함.
 	
 <details>
-  <summary>👉 수정하여 문제를 해결한 코드 확인 </summary>
+  <summary>👉 수정하여 문제를 해결한 쿼리 확인 </summary>
   <div markdown="1">    
 
   ```java
@@ -691,15 +691,15 @@
 	</resultMap>
 
 	<select id="getReceiptWithRestaurant" parameterType="String" resultMap="MZRegisterReceiptDTOMap">
-	    SELECT r.no as r_no, r.landNumAddress as r_landNumAddress, r.roadNameAddress as r_roadNameAddress,
-		   r.name as r_name, r.status as r_status, r.tel as r_tel, r.food as r_food,
-		   m.no as m_no, m.userId as m_userId, m.storeAddress as m_storeAddress,
-		   m.storePhoneNumber as m_storePhoneNumber, m.buyTime as m_buyTime
-	    FROM MAT_ZIP.mzregisterinfo m 
-	    JOIN MAT_ZIP.restaurant r ON m.storePhoneNumber = r.tel 
+	SELECT r.no as r_no, r.landNumAddress as r_landNumAddress, r.roadNameAddress as r_roadNameAddress,
+	           r.name as r_name, r.status as r_status, r.tel as r_tel, r.food as r_food,
+	           m.no as m_no, m.userId as m_userId, m.storeAddress as m_storeAddress,
+	           m.storePhoneNumber as m_storePhoneNumber, m.buyTime as m_buyTime
+	    FROM mzRegisterInfo m 
+	    JOIN restaurant r ON m.storePhoneNumber = r.tel 
 	    WHERE m.userID = #{user_id} 
 	    AND m.no NOT IN 
-	    (SELECT receipt_id FROM MAT_ZIP.cs_review)
+	    (SELECT receipt_id FROM cs_review)
 	</select>
   ```
 	  
@@ -708,7 +708,62 @@
 
   * **‼해석‼** MZRegisterInfoVO와 RestaurantVO의 각 필드와 SQL 쿼리 결과의 열을 매핑하기 위해 resultMap을 사용함. 
 	resultMap 내에서 association 태그를 사용하여 복합 DTO 내의 두 개의 객체를 따로 관리 진행하고, 또한 SQL 쿼리에서는 각 필드에 별칭(alias)을 사용하여 resultMap에서 참조할 수 있도록 하고, 별칭을 사용하여 SQL 결과의 열과 DTO의 속성을 연결함
-  * 보통은 resultType 을 이용하면 정상적으로 모델과 매핑할 수 있지만, 두개 이상 모델이나 다소 복잡한 DTO와 매핑을 진행할 때는 resultMap으로 세밀한 컨트롤을 하자! 라는 것을 학습.
+	
+<br>
+	
+  * 💡 추가 ► 업데이트한 쿼리를 보면, cs_review (리뷰게시글 저장 테이블) 을 IN 서브쿼리를 사용해 데이터를 가져오는 것을 볼 수 있는데, IN 서브쿼리를 사용하면 추후에 대량 데이터를 처리하게 되는 경우에 성능 이슈를 불러올 수 있다는 문제점이 있는 쿼리임. 대량의 데이터를 처리하지 않을거면 뭐 고치지 않아도 상관은 없지만, 쿼리 성능 향상을 위해 JOIN 절을 하나 더 사용해서 쿼리 업데이트를 진행함.
+	
+<details>
+  <summary>👉 성능을 업데이트한 쿼리 확인 </summary>
+  <div markdown="1">    
+
+  ```java
+	<!-- 영수증 등록 정보를 가져오자 -->
+	<resultMap id="MZRegisterReceiptDTOMap" type="com.mat.zip.board.MZRegisterReceiptDTO">
+	    <association property="mzRegisterInfoVO" javaType="com.mat.zip.registerAndSearch.model.MZRegisterInfoVO">
+		<result property="no" column="m_no" />
+		<result property="userId" column="m_userId" />
+		<result property="storeAddress" column="m_storeAddress" />
+		<result property="storePhoneNumber" column="m_storePhoneNumber" />
+		<result property="buyTime" column="m_buyTime" />
+	    </association>
+	    <association property="restaurantVO" javaType="com.mat.zip.registerAndSearch.model.RestaurantVO">
+		<result property="no" column="r_no" />
+		<result property="landNumAddress" column="r_landNumAddress" />
+		<result property="roadNameAddress" column="r_roadNameAddress" />
+		<result property="name" column="r_name" />
+		<result property="status" column="r_status" />
+		<result property="tel" column="r_tel" />
+		<result property="food" column="r_food" />
+	    </association>
+	</resultMap>
+
+	<select id="getReceiptWithRestaurant" parameterType="String" resultMap="MZRegisterReceiptDTOMap">
+	    SELECT 
+		    r.no as r_no, r.landNumAddress as r_landNumAddress, 
+		    r.roadNameAddress as r_roadNameAddress, r.name as r_name, 
+		    r.status as r_status, r.tel as r_tel, r.food as r_food,
+		    m.no as m_no, m.userId as m_userId, m.storeAddress as m_storeAddress,
+		    m.storePhoneNumber as m_storePhoneNumber, m.buyTime as m_buyTime
+		FROM 
+		    mzRegisterInfo m 
+		JOIN 
+		    restaurant r ON m.storePhoneNumber = r.tel 
+		LEFT JOIN
+		    cs_review cr ON m.no = cr.receipt_id
+		WHERE 
+		    m.userID = #{user_id} 
+		    AND cr.receipt_id IS NULL;
+	</select>
+  ```
+	  
+  </div>
+</details>
+	
+	
+  * **‼해석‼** MZRegisterInfoVO와 RestaurantVO의 각 필드와 SQL 쿼리 결과의 열을 매핑하기 위해 resultMap을 사용한 것은 동일함. 영수증별 1개의 리뷰만 작성 하기 위해 (중복리뷰, 도배리뷰 방지) 사용했던 cs_review 테이블을 IN 서브쿼리를 사용해서 데이터를 불러온 것을  LEFT JOIN 하여, m.no와 cr.receipt_id가 일치하는 항목을 찾는 쿼리임. 그런 다음 cr.receipt_id가 NULL인 항목, 즉 cs_review 테이블에 해당 영수증이 없는 항목만을 선택합니다. 결론은 이전 쿼리랑 실행시키는 기능은 똑같고, 대량의 데이터를 처리하는 상황에서 좀 더 효율적인 성능을 발휘시키기 위해 IN 서브쿼리 사용 부분을 JOIN을 사용하는 것으로 변경함.
+	
+  * **‼결론‼** 보통은 resultType 을 이용하면 정상적으로 모델과 매핑할 수 있지만, 두개 이상 모델이나 다소 복잡한 DTO와 매핑을 진행할 때는 resultMap으로 세밀한 컨트롤을 하자! 라는 것을 학습.
 
 	
 	
