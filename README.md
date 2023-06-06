@@ -904,7 +904,7 @@
   * Service 레이어에서 보유 포인트를 확인 후 상풍의 가격과 비교해서 보유 포인트가 적을 시 예외처리를 했습니다.
   * 보유 포인트를 확인 후 사용한 포인트를 DB에 저장하고, SENS API를 통해 MMS를 전송하게 됩니다.
   * @Transactional을 통해 예외 발생시 포인트 내역에 저장되기 전으로 롤백하도록 처리했습니다.(root-context에 Exception 설정을 추가해서 모든 예외 발생시 롤백되도록 설정했습니다)
-  * **‼결과‼** 보유 포인트가 충분하고, 상품 교환에 성공 시 팝업창을 통해 결과를 알려주고, 회원의 핸드폰번호로 MMS가 전송되게 됩니다. 
+  * **‼결과‼** 보유 포인트가 충분하고, 상품 교환에 성공 시 팝업창을 통해 결과를 알려주고, 회원의 핸드폰번호로 MMS가 전송되게 됩니다.  
 	
   ##### `3. 포인트 상세이력 관리`
   * 배민 우아한기술블로그 참고(https://techblog.woowahan.com/2587/) 도메인 로직을 참고해서 설계했습니다.
@@ -914,10 +914,53 @@
   * poll을 이용해 List에 저장된 포인트를 상품의 가격과 비교하여 다시 상세 테이블에 저장하고, 상품의 가격이 0원이 되면 종료되는 로직을 구현했습니다.
   * 유효기간만료 이벤트가 발생하면 테이블의 적립아이디를 기준으로 GROUP BY해서 남은 금액을 만료 처리 하면됩니다.
   * 이렇게 하면 기존의 update 로직보다 상세한 이력관리가 가능합니다.
-  * ![image](https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/47e96e9a-1591-4ede-ac4a-bac002e21264)
-
-
 	
+* [👉포인트 교환 테스트 코드](https://github.com/Quokka2/codingtest/assets/99588377/d5c3f440-e121-4548-8a4d-b5823283fcc0)
+	
+ ##### `4. 랭킹 시스템(또슐랭 가이드)`
+ * mz_member, restaurant, mzregisterinfo, mzlist 테이블을 각각 JOIN해서 ranking 테이블에 insert
+ * ranking 테이블의 컬럼 (mzlist.no, mzregisterinfo.user_id, restaurant.name, mz_member.gender, mzlist.img)
+ * mzregisterinfo 테이블 + restaurant 테이블의 tel 컬럼이 같은 restaurant의 name 컬럼 JOIN
+ * restaurant 테이블 +  mzlist 테이블의 tel 컬럼이 같은 mzlist의 업체등록번호, 이미지 파일 이름 컬럼 JOIN
+ * mzregisterinfo 테이블 + mz_member 테이블의 user_id 컬럼이 같은 user_id 컬럼 JOIN
+ * 이벤트 스케줄러(Event Scheduler)를 생성해 매일 자정에 ranking 테이블에 영수증 등록된 업체 정보를 insert하는 SQL문 실행
+ * **‼결과‼** ranking 테이블에 있는 데이터를 카테고리별 select해서 메인 페이지 화면에 출력
+ * <details>
+	<summary>👉코드확인</summary>
+	<div markdown="1">
+		
+	 ```sql
+		#ranking 테이블 저장 Event Scheduler
+		CREATE EVENT daily_update_ranking
+		ON SCHEDULE EVERY 1 DAY STARTS CURDATE() + INTERVAL 1 DAY
+		DO
+   		INSERT INTO multi.ranking (no, user_id, name, gender, img)
+   		SELECT mzlist.`no` , mzregisterinfo.user_id, restaurant.name, mz_member.gender, mzlist.img
+   		FROM multi.mzregisterinfo
+   		INNER JOIN multi.restaurant ON mzregisterinfo.storePhoneNumber = restaurant.tel
+   		INNER JOIN multi.mzlist ON restaurant.tel = mzlist.tel
+   		INNER JOIN multi.mz_member ON mzregisterinfo.user_id = mz_member.user_id;
+		#카테고리별 5개 리스트 select
+		select `no`, name, img, count(name) as total from matzip.ranking
+		group by `no`, name, img
+		order by total desc
+		limit 5;
+
+		select `no`, name, img, count(name) as total from multi.ranking
+		where gender = '여'
+		group by `no`, name, img
+		order by total desc
+		limit 5;
+
+		select `no`, name, img, count(name) as total from multi.ranking
+		where gender = '남'
+		group by `no`, name, img
+		order by total desc
+		limit 5;
+	 ```
+	
+	</div>
+	</details>
 </details>
 
 <details>
