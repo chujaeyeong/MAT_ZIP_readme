@@ -88,7 +88,6 @@
 * #### `캘린더`
   * 방문 예정인 맛집 일정을 등록하고, 확인할 수 있는 캘린더 기능을 구현함.
 
-
 <br>
 
 | **회원가입, 로그인, 마이페이지, AI챗봇** | **영수증 등록, 검색기능** |
@@ -99,7 +98,7 @@
 | **사장 커뮤니티** | **포인트 시스템, 랭킹 시스템** |
 | <img src ="https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/97064c73-b97d-417d-9e33-54ca1a7a96b5" width="440" height="260" /> | <img src ="https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/3f370f44-47cb-480a-b433-5e885ff4f00d" width="440" height="260" /> | 
 | **캘린더** | 
-| <img src ="https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/adf1449a-b016-4a5c-874a-8c7839490ca7" width="440" height="260" /> 
+| <img src ="https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/1865cb93-c556-4752-8fb0-6547cf8e0c6b" width="440" height="260" /> 
 
 
 <br>
