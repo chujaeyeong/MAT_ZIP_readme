@@ -88,13 +88,76 @@
 * #### `캘린더`
   * 방문 예정인 맛집 일정을 등록하고, 확인할 수 있는 캘린더 기능을 구현함.
 
+
 <br>
+
+| **회원가입, 로그인, 마이페이지, AI챗봇** | **영수증 등록, 검색기능** |
+|:---:|:---:|
+| <img src ="https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/23a1ad5b-0408-42e4-918a-c7c7fb7b0934" width="440" height="260" /> | <img src ="https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/14686d48-6457-4f58-8576-043a581f158f" width="440" height="260" /> | 
+| **음식점 상세페이지** | **회원 커뮤니티** |
+| <img src ="https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/adf1449a-b016-4a5c-874a-8c7839490ca7" width="440" height="260" /> | <img src ="https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/eac545ae-84b0-4d6a-8d25-6ccd41ef3b17" width="440" height="260" /> | 
+| **사장 커뮤니티** | **포인트 시스템, 랭킹 시스템** |
+| <img src ="https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/97064c73-b97d-417d-9e33-54ca1a7a96b5" width="440" height="260" /> | <img src ="https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/3f370f44-47cb-480a-b433-5e885ff4f00d" width="440" height="260" /> | 
+| **캘린더** | 
+| <img src ="https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/adf1449a-b016-4a5c-874a-8c7839490ca7" width="440" height="260" /> 
+
+
+<br>
+
 
 ## 4. ERD 설계
 <img src="https://user-images.githubusercontent.com/123634960/242927505-6d8c1885-fd63-41a2-84c7-c521fcce39e7.png">
 
+<br>
+
 ## 5. 시스템 아키텍쳐 구성도
 ![image](https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/0c1d4630-7673-4fc7-b995-e81dea7d1af6)
+
+<details>
+  <summary>아키텍쳐 설명 열어보기!</summary>
+
+<br>
+	
+  ### `아키텍쳐 설계에 대한 정리`
+* 📌 https://docs.google.com/presentation/d/1ctdr4CTAJIyls9e24kb9k101kQK0VD6m/edit?usp=sharing&ouid=104520414346845957015&rtpof=true&sd=true
+* 📌 처음 배포를 하는 과정에서 많은 어려움과 난관에 봉착하였었지만 하나하나 해결해 나가며 AWS 아키텍쳐에 대한 이해가 높아졌습니다. 관련 세부사항은 27~28페이지부터 확인하실 수 있습니다.
+* **현재 https:://도메인. 으로 배포상태에 있으며, 사진 등록은 로그인 후에 이용하실 수 있습니다.**
+	
+**📌 필독 : 기본적으로 저희 프로젝트의 가용 범위는 강남 지역으로 한정하였습니다. 영수증에 나와있는 주소가 공공데이터포털의 서울시 강남구 일반 음식점 인허가 정보에 있는 가게의 주소를 기반으로 동작합니다.**
+**테스트를 위한 아이디, 비밀번호 그리고 영수증을 첨부할 예정이지만, 실제 서비스와 동일한 환경을 제공하기 위해 같은 영수증은 두 번 이상 등록하지 못하게 구현해 놓았습니다.** 
+**또한 같은 영수증을 다중으로 등록하는 것도 악용 사례에 해당하기 때문에 관련 데이터의 유효성 문제는 vkdls754@gmail.com 으로 연락 주시면 친절히 답변 드리겠습니다.**
+
+
+  #### `용어`
+  * 라우트53 : dns 도메인을 관리해주고 아이피로 변환해줍니다.
+  * 클라우드 프론트 : cdn , cache에 이점이 있습니다.(정적웹, 동적웹을 분리해주길 위한 역할)
+  * 인터넷 게이트웨이 :VPC와 인터넷 간의 통신을 가능하게 하며, 퍼블릭 서브넷의 리소스들이 인터넷에 직접 연결될 수 있도록 합니다.
+  * NAT 게이트웨이 : 개인 서브넷의 리소스들이 인터넷과 통신할 수 있도록 하는데, 주로 아웃바운드 트래픽에 사용됩니다.
+  * ALB(로드밸런서) : 부하를 분배해줍니다.
+  * Bastion : private subnet 에 직접 접근을 할 수 없는데 이를 통해 접속할 수 있게끔 해줍니다.
+  
+  #### `작동 순서`
+  * 클라이언트가 라우트 53 dns 서버를 거쳐 클라우드 프론트로 가게되면 클라우드 프론트에서는 도메인을 확인 후 인터넷게이트를 통해 로드밸런서에 접근하게 됩니다. 
+  * 요청한 페이지를 넷게이트웨이에서 공인아이피를 사설아이피로 변환 후 서브넷에 있는 인스턴스와 rds를 통해 가지고 오게 되는데
+  * 이때 요청페이지의 헤더에 (우리 페이지의 예시 index.jsp) html, css , 이미지 등이 클라우드 프론트는 S3를 호출하게 되고 데이터를 가져오게 됩니다.
+  * 따라서 (도메인은 cdn.matjavamatzip.click으로 설정후 각각의 cdn 호출 부분에 a태그, link를 바꿔줘야 합니다.) 이 파일들은 S3에 저장되게 됩니다.
+  * 나머지 동적 웹 데이터들은 순방향으로 인스턴스와 rds를 거쳐 다시 로드밸런서로 돌아오고 클라이언트로 응답을 해줍니다.	
+
+   #### `최종 설계, Next step`
+  * 부하 테스트에 따른 Scale Out과 보안을 위한 네트워크 분리는 반드시 이루어져야할 사항입니다.
+    현재 설계된 아키텍쳐에서는 몇가지 문제사항이 있습니다.
+
+  ![image](https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/c77c39bc-cb13-4a0b-82b1-9b9b9689fe9f)
+  * 서버가 뻗었을 때에 대책방안이 필요합니다. 로드밸런서로 부하를 분배하며, RDS failover 기능을 이용한 slave DB의 master 승격이 이루어져야합니다. 
+            부하테스트는 많은 툴이 있겠지만 ngrinder를 이용합니다. aws t3.micro 등은 부하테스트를 조금만 진행해도 서버가 죽을 것입니다. 
+            적당한 Scale Up 또한 필요합니다. 
+ 
+![image](https://github.com/chujaeyeong/MAT_ZIP_readme_chujy/assets/123634960/3d9eedde-0251-4872-b9bd-09ae2d6706a7) 
+* 네트워크가 동일한 public subnet에 있다면 보안상 문제가 발생합니다. 외부에서 접근할 수 없도록  EC2 인스턴스와 RDS 인스턴스는 각각의 subnet에 위치하여야하고 관리자는 bastion을 통해 접근하여야합니다. 
+ 
+추가적으로 CICD (Continuous Integration/Continuous Delivery) : 프로젝트 배포와 테스트를 자동적으로 진행함에 따라 
+불필요한 노동력을 없앨 예정입니다. 
+</details>
 
 
 <br>
